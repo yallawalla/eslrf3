@@ -10,7 +10,7 @@
       <TargetName>eslrf3</TargetName>
       <ToolsetNumber>0x4</ToolsetNumber>
       <ToolsetName>ARM-ADS</ToolsetName>
-      <pCCUsed>5060750::V5.06 update 6 (build 750)::.\ARMCC</pCCUsed>
+      <pCCUsed>5060960::V5.06 update 7 (build 960)::.\ARMCC</pCCUsed>
       <uAC6>0</uAC6>
       <TargetOption>
         <TargetCommonOption>
@@ -339,7 +339,7 @@
               <MiscControls></MiscControls>
               <Define>USE_HAL_DRIVER,STM32F334x8</Define>
               <Undefine></Undefine>
-              <IncludePath>../Core/Inc;../Drivers/STM32F3xx_HAL_Driver/Inc;../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy;../Drivers/CMSIS/Device/ST/STM32F3xx/Include;../Drivers/CMSIS/Include;..\misc</IncludePath>
+              <IncludePath>../Core/Inc; ../Drivers/STM32F3xx_HAL_Driver/Inc; ../Drivers/STM32F3xx_HAL_Driver/Inc/Legacy; ../Drivers/CMSIS/Device/ST/STM32F3xx/Include; ../Drivers/CMSIS/Include; ..\misc</IncludePath>
             </VariousControls>
           </Cads>
           <Aads>
@@ -394,6 +394,11 @@
           <GroupName>Application/User/Core</GroupName>
           <Files>
             <File>
+              <FileName>test.c</FileName>
+              <FileType>1</FileType>
+              <FilePath>..\Core\Src\test.c</FilePath>
+            </File>
+            <File>
               <FileName>main.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/main.c</FilePath>
@@ -407,11 +412,6 @@
               <FileName>stm32f3xx_hal_msp.c</FileName>
               <FileType>1</FileType>
               <FilePath>../Core/Src/stm32f3xx_hal_msp.c</FilePath>
-            </File>
-            <File>
-              <FileName>test.c</FileName>
-              <FileType>1</FileType>
-              <FilePath>..\Core\Src\test.c</FilePath>
             </File>
           </Files>
         </Group>
@@ -564,11 +564,6 @@
     <Layers>
       <Layer>
         <LayName>&lt;Project Info&gt;</LayName>
-        <LayDesc></LayDesc>
-        <LayUrl></LayUrl>
-        <LayKeys></LayKeys>
-        <LayCat></LayCat>
-        <LayLic></LayLic>
         <LayTarg>0</LayTarg>
         <LayPrjMark>1</LayPrjMark>
       </Layer>

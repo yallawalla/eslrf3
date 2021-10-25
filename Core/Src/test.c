@@ -13,8 +13,7 @@ typedef enum { ON, NA, BIT, FIRE } opmode;
 typedef enum { NORMAL, VERSION, COMM, COUNT } submode;
 typedef enum { SECOND, FIRST } echo;
 
-extern		TIM_HandleTypeDef htim1;
-TIM_HandleTypeDef htim2;
+extern		TIM_HandleTypeDef htim1,htim2,htim3;
 
 _buffer		*icbuf1,*icbuf2;				// dma buffer ic1,ic2,tim2
 uint16_t	*pwmbuf;								// dma buffer tim3,pwm
@@ -25,7 +24,7 @@ static void __rearmDMA(uint32_t len)	{
 			__HAL_DMA_DISABLE(htim1.hdma[TIM_DMA_ID_UPDATE]);
 			__HAL_TIM_DISABLE(&htim1);
 			__HAL_TIM_SET_COUNTER(&htim1,0);
-//			while(htim1.hdma[TIM_DMA_ID_UPDATE]->Instance->CCR & DMA_SxCR_EN);
+			while(htim1.hdma[TIM_DMA_ID_UPDATE]->Instance->CCR & DMA_CCR_EN);
 			htim1.hdma[TIM_DMA_ID_UPDATE]->Instance->CNDTR=len;
 			__HAL_DMA_CLEAR_FLAG(htim1.hdma[TIM_DMA_ID_UPDATE],DMA_FLAG_TC5 | DMA_FLAG_HT5 | DMA_FLAG_TE5);
 			__HAL_DMA_ENABLE(htim1.hdma[TIM_DMA_ID_UPDATE]);
@@ -87,9 +86,9 @@ static	uint16_t	*sendBytes(uint8_t *s, uint16_t *d, uint16_t len) {
 	while(len--) {
 		dat |= (*s++ | (1 << nBits)) << 1;
 		for (uint32_t i=1; i < (1 << (nBits + 2)); i<<=1) {
-			if(dat & i) d[0] = nBaud+1; else d[0] = 0;
-			if(dat & i) d[2] = 0; else d[2] = nBaud+1;
-			++d; ++d; ++d;
+			if(dat & i) d[0] = d[2] = nBaud+1; else d[0] = d[2] = 0;
+			if(dat & i) d[1] = d[3] = 0; else d[1] = d[3] = nBaud+1;
+			++d; ++d; ++d; ++d;
 		}
 		dat=0;
 	}
@@ -195,14 +194,16 @@ void		app(void) {
 		htim1.Instance->ARR=nBaud;
 		
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
+		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_2);
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_3);
-		HAL_TIM_DMABurst_WriteStart(&htim1,TIM_DMABASE_CCR1,TIM_DMA_UPDATE,(uint32_t *)pwmbuf,TIM_DMABURSTLENGTH_3TRANSFERS);
+		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
+		HAL_TIM_DMABurst_WriteStart(&htim1,TIM_DMABASE_CCR1,TIM_DMA_UPDATE,(uint32_t *)pwmbuf,TIM_DMABURSTLENGTH_4TRANSFERS);
 		
 		icbuf1=_buffer_init(1024);
-		HAL_TIM_IC_Start_DMA(&htim2,TIM_CHANNEL_1, (uint32_t *)icbuf1->_buf, icbuf1->size/sizeof(uint32_t));
+		HAL_TIM_IC_Start_DMA(&htim2,TIM_CHANNEL_3, (uint32_t *)icbuf1->_buf, icbuf1->size/sizeof(uint32_t));
 		
 		icbuf2=_buffer_init(1024);
-		HAL_TIM_IC_Start_DMA(&htim2,TIM_CHANNEL_2,  (uint32_t *)icbuf2->_buf, icbuf2->size/sizeof(uint32_t));
+		HAL_TIM_IC_Start_DMA(&htim3,TIM_CHANNEL_4,  (uint32_t *)icbuf2->_buf, icbuf2->size/sizeof(uint32_t));
 	}
 	
 	switch (getchar()) {
@@ -250,8 +251,8 @@ void		app(void) {
 		_buffer_put(icbuf2,&idle,sizeof(uint32_t));
 	}
 
-	icbuf1->_push = &icbuf1->_buf[(icbuf1->size - htim2.hdma[TIM_DMA_ID_CC1]->Instance->CNDTR*sizeof(uint32_t))];
-	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim2.hdma[TIM_DMA_ID_CC2]->Instance->CNDTR*sizeof(uint32_t))];
+	icbuf1->_push = &icbuf1->_buf[(icbuf1->size - htim2.hdma[TIM_DMA_ID_CC3]->Instance->CNDTR*sizeof(uint32_t))];
+	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim3.hdma[TIM_DMA_ID_CC4]->Instance->CNDTR*sizeof(uint32_t))];
 
 	if(_buffer_count(icbuf1) && _buffer_count(icbuf2)) {
 		uint32_t	t1,t2;
