@@ -244,7 +244,7 @@ void		app(void) {
 		default:
 		break;
 	}
-	
+
 	if(idle && HAL_GetTick() > idle) {
 		idle=0;
 		_buffer_put(icbuf1,&idle,sizeof(uint32_t));
@@ -254,7 +254,7 @@ void		app(void) {
 	icbuf1->_push = &icbuf1->_buf[(icbuf1->size - htim2.hdma[TIM_DMA_ID_CC3]->Instance->CNDTR*sizeof(uint32_t))];
 	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim3.hdma[TIM_DMA_ID_CC4]->Instance->CNDTR*sizeof(uint32_t))];
 
-	if(_buffer_count(icbuf1) && _buffer_count(icbuf2)) {
+	if(_buffer_count(icbuf1) || _buffer_count(icbuf2)) {
 		uint32_t	t1,t2;
 		_buffer_pull(icbuf1,&t1,sizeof(uint32_t));
 		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
