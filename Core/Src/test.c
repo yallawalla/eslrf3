@@ -100,7 +100,7 @@ static	uint16_t	*sendBytes(uint8_t *s, uint16_t *d, uint16_t len) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static	void			sendCallW(void) {
+static	void	sendCallW(void) {
 	callW.chk=0;
 	for(int n=0; n<sizeof(callW)-1; ++n)
 		callW.chk += ((uint8_t *)&callW)[n];
@@ -112,7 +112,7 @@ static	void			sendCallW(void) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static	void sendAcklW(void) {
+static	void	sendAcklW(void) {
 	ackW.a482.chk=0;
 	ackW.a485.count=1;
 	for(int n=0; n<sizeof(ackW)-1; ++n)
@@ -125,7 +125,7 @@ static	void sendAcklW(void) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static	int32_t		getIc(uint32_t ic) {
+static	int32_t	getIc(uint32_t ic) {
 	static uint32_t to, bit, dat, cnt;
 	int32_t	ret=EOF;
 	if (to) {
@@ -190,7 +190,7 @@ void		app(void) {
 		_print("ESLRF test\r\n");
 
 		pwmbuf=malloc(1024*sizeof(uint16_t));
-		memcpy(pwmbuf,"\0xffff",sizeof(uint16_t));	//dummy edge, first CCR1 !!!
+		memcpy(pwmbuf,"\0xffff,0,\0xffff,0",sizeof(uint16_t));	//dummy edge, first CCR1 !!!
 		htim1.Instance->ARR=nBaud;
 		
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_1);
@@ -205,7 +205,7 @@ void		app(void) {
 		icbuf2=_buffer_init(1024);
 		HAL_TIM_IC_Start_DMA(&htim3,TIM_CHANNEL_4,  (uint32_t *)icbuf2->_buf, icbuf2->size/sizeof(uint32_t));
 	}
-	
+
 	switch (getchar()) {
 		case __F1:
 			callW.opmode=ON;
@@ -254,11 +254,12 @@ void		app(void) {
 	icbuf1->_push = &icbuf1->_buf[(icbuf1->size - htim2.hdma[TIM_DMA_ID_CC3]->Instance->CNDTR*sizeof(uint32_t))];
 	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim3.hdma[TIM_DMA_ID_CC4]->Instance->CNDTR*sizeof(uint32_t))];
 
-	if(_buffer_count(icbuf1) || _buffer_count(icbuf2)) {
+//	if(_buffer_count(icbuf1) || _buffer_count(icbuf2)) {
+	if(_buffer_count(icbuf1)) {
 		uint32_t	t1,t2;
 		_buffer_pull(icbuf1,&t1,sizeof(uint32_t));
-		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
-		if(t1-t2 < 72) {
+//		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
+//		if(t1-t2 < 72) {
 			int32_t ch=getIc(t1);
 			if(ch != EOF)
 				parse(ch);
@@ -268,7 +269,7 @@ void		app(void) {
 				else
 					_print("%03X ",ch);
 			}
-		}
+//		}
 	}
 } 
 
