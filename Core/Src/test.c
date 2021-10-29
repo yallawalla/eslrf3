@@ -1,17 +1,18 @@
-#include "stm32f3xx_hal.h"
-#include <stdlib.h>
-#include <stdio.h>
-#include "io.h"
-#include "misc.h"
-#include "ascii.h"
+#include	"stm32f3xx_hal.h"
+#include	"io.h"
+#include	"misc.h"
+#include	"ascii.h"
+
+#include	<stdlib.h>
+#include	<stdio.h>
 
 #define		nBits	9
 #define		nStop	1
 #define		baudrate	19200
 
-typedef enum { ON, NA, BIT, FIRE } opmode;
-typedef enum { NORMAL, VERSION, COMM, COUNT } submode;
-typedef enum { SECOND, FIRST } echo;
+typedef		enum { ON, NA, BIT, FIRE } opmode;
+typedef		enum { NORMAL, VERSION, COMM, COUNT } submode;
+typedef		enum { SECOND, FIRST } echo;
 
 extern		TIM_HandleTypeDef htim1,htim2,htim3;
 
@@ -100,7 +101,7 @@ static	uint16_t	*sendBytes(uint8_t *s, uint16_t *d, uint16_t len) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static	void	sendCallW(void) {
+static	void			sendCallW(void) {
 	callW.chk=0;
 	for(int n=0; n<sizeof(callW)-1; ++n)
 		callW.chk += ((uint8_t *)&callW)[n];
@@ -112,7 +113,7 @@ static	void	sendCallW(void) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static	void	sendAcklW(void) {
+static	void			sendAcklW(void) {
 	ackW.a482.chk=0;
 	ackW.a485.count=1;
 	for(int n=0; n<sizeof(ackW)-1; ++n)
@@ -125,11 +126,12 @@ static	void	sendAcklW(void) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static	int32_t	getIc(uint32_t ic) {
+static	int32_t		getIc(uint32_t ic) {
 	static uint32_t to, bit, dat, cnt;
 	int32_t	ret=EOF;
 	if (to) {
-		uint32_t n = ((ic - to) + nBaud/2) / nBaud;
+//		_print("\r\n%d ",(ic-to)%0x10000);
+		uint32_t n = ((ic-to)%0x10000 + nBaud/2) / nBaud;
 		while (n-- && cnt <= nBits + nStop) {
 			dat = (dat | bit) >> 1;
 			++cnt;
@@ -152,7 +154,7 @@ static	int32_t	getIc(uint32_t ic) {
 * Output				:
 * Return				:
 *******************************************************************************/
-static void		parse(int32_t cword) {
+static void				parse(int32_t cword) {
 static	uint32_t	idx=0, len=4;
 	if(cword & 0x100) {
 		idx=rxW.a482.chk=0;
@@ -183,11 +185,16 @@ static	uint32_t	idx=0, len=4;
 * Output				:
 * Return				:
 *******************************************************************************/
-void		app(void) {
-
+void							app(void) {
 	if(!pwmbuf)	{
 		nBaud=SystemCoreClock/baudrate-1;
 		_print("ESLRF test\r\n");
+
+		icbuf1=_buffer_init(512);
+		HAL_TIM_IC_Start_DMA(&htim2,TIM_CHANNEL_3, (uint32_t *)icbuf1->_buf, icbuf1->size/sizeof(uint32_t));
+		
+		icbuf2=_buffer_init(512);
+		HAL_TIM_IC_Start_DMA(&htim3,TIM_CHANNEL_4,  (uint32_t *)icbuf2->_buf, icbuf2->size/sizeof(uint32_t));
 
 		pwmbuf=malloc(1024*sizeof(uint16_t));
 		memcpy(pwmbuf,"\0xffff,0,\0xffff,0",sizeof(uint16_t));	//dummy edge, first CCR1 !!!
@@ -198,12 +205,6 @@ void		app(void) {
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_3);
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
 		HAL_TIM_DMABurst_WriteStart(&htim1,TIM_DMABASE_CCR1,TIM_DMA_UPDATE,(uint32_t *)pwmbuf,TIM_DMABURSTLENGTH_4TRANSFERS);
-		
-		icbuf1=_buffer_init(1024);
-		HAL_TIM_IC_Start_DMA(&htim2,TIM_CHANNEL_3, (uint32_t *)icbuf1->_buf, icbuf1->size/sizeof(uint32_t));
-		
-		icbuf2=_buffer_init(1024);
-		HAL_TIM_IC_Start_DMA(&htim3,TIM_CHANNEL_4,  (uint32_t *)icbuf2->_buf, icbuf2->size/sizeof(uint32_t));
 	}
 
 	switch (getchar()) {
@@ -255,19 +256,19 @@ void		app(void) {
 	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim3.hdma[TIM_DMA_ID_CC4]->Instance->CNDTR*sizeof(uint32_t))];
 
 //	if(_buffer_count(icbuf1) || _buffer_count(icbuf2)) {
-	if(_buffer_count(icbuf1)) {
+	if(_buffer_count(icbuf2)) {
 		uint32_t	t1,t2;
-		_buffer_pull(icbuf1,&t1,sizeof(uint32_t));
+		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
 //		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
 //		if(t1-t2 < 72) {
-			int32_t ch=getIc(t1);
+			int32_t ch=getIc(t2);
 			if(ch != EOF)
 				parse(ch);
 			if(ch != EOF) {
 				if(ch & 0x100)
-					_print("\r\n%03X ",ch);
+					_print("\r\n.%02X ",ch);
 				else
-					_print("%03X ",ch);
+					_print("%02X ",ch);
 			}
 //		}
 	}
