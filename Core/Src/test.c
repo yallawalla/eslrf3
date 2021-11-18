@@ -6,8 +6,8 @@
 #include	<stdlib.h>
 #include	<stdio.h>
 
-#define		nBits	9
-#define		nStop	1
+#define		nBits			9
+#define		nStop			1
 #define		baudrate	19200
 
 typedef		enum { ON, NA, BIT, FIRE } opmode;
@@ -129,21 +129,27 @@ static	void			sendAcklW(void) {
 static	int32_t		getIc(uint32_t ic) {
 	static uint32_t to, bit, dat, cnt;
 	int32_t	ret=EOF;
+//	if(!ic)
+//		_print("----");
 	if (to) {
-//		_print("\r\n%d ",(ic-to)%0x10000);
 		uint32_t n = ((ic-to)%0x10000 + nBaud/2) / nBaud;
 		while (n-- && cnt <= nBits + nStop) {
 			dat = (dat | bit) >> 1;
 			++cnt;
+//			if(bit)
+//				_print("-");
+//			else
+//				_print("_");
 		}
-		idle=HAL_GetTick()+5;		
 		bit ^= 1 << (nBits + nStop);
 		if (cnt > nBits + nStop) {
 			ret=dat & ((1<<nBits)-1);
 			dat = cnt = 0;
-		}
+		} else
+			idle=HAL_GetTick()+5;		
 	} else {
 			bit = dat = cnt = 0;
+//			_print("\r\n\r\n\r\n----");
 	}
 	to = ic;
 	return ret;
@@ -186,6 +192,7 @@ static	uint32_t	idx=0, len=4;
 * Return				:
 *******************************************************************************/
 void							app(void) {
+// first entry
 	if(!pwmbuf)	{
 		nBaud=SystemCoreClock/baudrate-1;
 		_print("ESLRF test\r\n");
@@ -206,7 +213,7 @@ void							app(void) {
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
 		HAL_TIM_DMABurst_WriteStart(&htim1,TIM_DMABASE_CCR1,TIM_DMA_UPDATE,(uint32_t *)pwmbuf,TIM_DMABURSTLENGTH_4TRANSFERS);
 	}
-
+// parse keys
 	switch (getchar()) {
 		case __F1:
 			callW.opmode=ON;
@@ -245,16 +252,18 @@ void							app(void) {
 		default:
 		break;
 	}
-
+// input timeout
 	if(idle && HAL_GetTick() > idle) {
 		idle=0;
 		_buffer_put(icbuf1,&idle,sizeof(uint32_t));
 		_buffer_put(icbuf2,&idle,sizeof(uint32_t));
+//		_print("\r\n..idle");
 	}
-
+// sync IC buffers' input pointer with DMA counter
 	icbuf1->_push = &icbuf1->_buf[(icbuf1->size - htim2.hdma[TIM_DMA_ID_CC3]->Instance->CNDTR*sizeof(uint32_t))];
 	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim3.hdma[TIM_DMA_ID_CC4]->Instance->CNDTR*sizeof(uint32_t))];
 
+// buffers parsing
 //	if(_buffer_count(icbuf1) || _buffer_count(icbuf2)) {
 	if(_buffer_count(icbuf2)) {
 		uint32_t	t1,t2;
