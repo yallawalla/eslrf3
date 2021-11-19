@@ -192,8 +192,10 @@ static	uint32_t	idx=0, len=4;
 * Return				:
 *******************************************************************************/
 void							app(void) {
-// first entry
-	if(!pwmbuf)	{
+	static int32_t	t1=0,t2=0;
+	int32_t ch=EOF;
+
+	if(!pwmbuf)	{																					// first entry
 		nBaud=SystemCoreClock/baudrate-1;
 		_print("ESLRF test\r\n");
 
@@ -213,8 +215,7 @@ void							app(void) {
 		HAL_TIM_PWM_Start(&htim1,TIM_CHANNEL_4);
 		HAL_TIM_DMABurst_WriteStart(&htim1,TIM_DMABASE_CCR1,TIM_DMA_UPDATE,(uint32_t *)pwmbuf,TIM_DMABURSTLENGTH_4TRANSFERS);
 	}
-// parse keys
-	switch (getchar()) {
+	switch (getchar()) {																	// parse keys
 		case __F1:
 			callW.opmode=ON;
 			callW.submode=NORMAL;
@@ -252,34 +253,34 @@ void							app(void) {
 		default:
 		break;
 	}
-// input timeout
-	if(idle && HAL_GetTick() > idle) {
+
+	if(idle && HAL_GetTick() > idle) {										// input timeout
 		idle=0;
 		_buffer_put(icbuf1,&idle,sizeof(uint32_t));
-		_buffer_put(icbuf2,&idle,sizeof(uint32_t));
-//		_print("\r\n..idle");
-	}
-// sync IC buffers' input pointer with DMA counter
+		_buffer_put(icbuf2,&idle,sizeof(uint32_t));;
+	}																											// sync IC buffers' input pointer with DMA counter
+
 	icbuf1->_push = &icbuf1->_buf[(icbuf1->size - htim2.hdma[TIM_DMA_ID_CC3]->Instance->CNDTR*sizeof(uint32_t))];
 	icbuf2->_push = &icbuf2->_buf[(icbuf2->size - htim3.hdma[TIM_DMA_ID_CC4]->Instance->CNDTR*sizeof(uint32_t))];
 
-// buffers parsing
-//	if(_buffer_count(icbuf1) || _buffer_count(icbuf2)) {
-	if(_buffer_count(icbuf2)) {
-		uint32_t	t1,t2;
-		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
-//		_buffer_pull(icbuf2,&t2,sizeof(uint32_t));
-//		if(t1-t2 < 72) {
-			int32_t ch=getIc(t2);
-			if(ch != EOF)
-				parse(ch);
-			if(ch != EOF) {
-				if(ch & 0x100)
-					_print("\r\n.%02X ",ch);
-				else
-					_print("%02X ",ch);
-			}
-//		}
+	if(_buffer_pull(icbuf1,&t1,sizeof(uint32_t))) {				// buffers parsing
+		if(abs(t1-t2) < 72) {
+			ch=getIc((t1+t2)/2);
+		}
+	}
+	if(_buffer_pull(icbuf2,&t2,sizeof(uint32_t))) {
+		if(abs(t1-t2) < 72) {
+			ch=getIc((t1+t2)/2);
+		}
+	}
+	
+	if(ch != EOF)																					// parsing response
+		parse(ch);
+	if(ch != EOF) {
+		if(ch & 0x100)
+			_print("\r\n.%02X ",ch);
+		else
+		_print("%02X ",ch);
 	}
 } 
 
